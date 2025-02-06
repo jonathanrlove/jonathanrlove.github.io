@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Qualifying Exam Practice Test</title>
+    <meta name="viewport" content="width=device-width">
+    <style>
+	img {
+	    padding: 0;
+	    display: block;
+	    margin: 0 auto;
+ 	    max-width: 95%;
+	    height: auto;
+	}
+	body {
+	    margin-left: 20px;
+	    margin-right: 20px;
+	}
+	#page-wrap {
+	    max-width: 800px;
+	    margin: 0 auto;
+	}
+    </style>
+	<meta name="robots" content="noindex">
+</head>
+<body>
+<div id="page-wrap">
+<center>
+	<h2>Qualifying Exam Practice Test</h2>
+	<p id="gendate"></p>
+	<p id="noquerytext">Use the <a href="/qual/">Make Me a Qual</a> tool to generate a practice test.</p>
+</center>
+<div id="questions"></div>
+<center style="font-family:sans-serif" id="pagefooter"><small>
+	Generated using "Make Me a Qual" &copy; <a href="/">Jonathan Love</a> 2021, <a href="/qual/">http://jonathanlove.info/qual/</a><br>
+	Many screenshots courtesy of Mark Perlman. Originals available at<br>
+	<a href="https://mathematics.stanford.edu/phd-program/phd-qualifying-exams">https://mathematics.stanford.edu/phd-program/phd-qualifying-exams</a>
+</small></center>
+	
+<script type="text/javascript">
+
+    function newquestion(instr,num) {
+	//Parse the question ID
+	str = instr.substring(0,3).toLowerCase() + instr.substring(3).toUpperCase();
+	if (str != "") {
+	    var topic = "";
+	    switch (str.substring(0,3)) {
+	        case "alg":
+		    topic = "Algebra";
+		    break;
+		case "ana":
+		    topic = "Analysis"; }
+	    var year = str.substring(3,7);
+	    var season = "";
+	    switch (str.charAt(7)) {
+	        case "F":
+		    season = "Fall";
+		    break;
+	        case "S":
+		    season = "Spring"; }
+	    var time = "";
+	    switch (str.charAt(8)) {
+	        case "M":
+		    time = "Morning";
+		    break;
+	        case "A":
+		    time = "Afternoon"; }
+	    var qnum = str.substring(9);
+	    var qtitle = " (" + season + " " + year + " " + topic + " Qual, " + time + " #" + qnum + ")"
+
+	    //Make Caption
+	    var caption = document.createElement('big');
+	    var boldcap = document.createElement('b');
+	    boldcap.appendChild(document.createTextNode(num + ":"));
+	    caption.appendChild(boldcap);
+	    caption.appendChild(document.createTextNode(qtitle));
+	    caption.appendChild(document.createElement('br'));
+
+	    //Collect image
+	    var image = document.createElement("IMG");
+	    image.src = str + '.png';
+
+	    //Put it all together
+	    var question = document.createElement('p');
+	    question.appendChild(caption);
+	    question.appendChild(image);
+	    question.appendChild(document.createElement('br'));
+
+	    var questions = document.getElementById('questions');
+	    questions.appendChild(question);
+        }
+    }
+
+    //Retrieve question list
+	var idx = document.URL.indexOf('=');
+	if (idx != -1) {
+		var existsquery = true;
+		var qlist = document.URL.substring(idx + 1, document.URL.length).split("-");
+	} else {
+		var existsquery = false;
+		var qlist = [];
+	}
+
+	if (!existsquery) {
+		document.getElementById('pagefooter').remove();
+	} else {
+		document.getElementById('noquerytext').remove();
+
+		//Date generated
+		var gendate = document.getElementById('gendate');
+		var d = new Date();
+		var month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+		subtitle = "Generated on " + month[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+		gendate.appendChild(document.createTextNode(subtitle));
+
+		//Create the questions
+		for (i=0; i < qlist.length; i++) {
+			newquestion(String(qlist[i]),i+1);
+		}	
+
+		//Easter Egg
+		var questions = document.getElementById('questions');
+		if (!questions.firstChild) {
+			for (i=0; i<10; i++) {
+				o = Math.floor(Math.random() * 4);
+				switch (o) {
+					case 0:
+					oper = " + ";
+					b = Math.floor(Math.random() * 20);
+					a = Math.floor(Math.random() * 20);
+					break;
+					case 1:
+					oper = " - ";
+					b = Math.floor(Math.random() * 20);
+					a = b + Math.floor(Math.random() * 20);
+					break;
+					case 2:
+					oper = " \xD7 ";
+					b = Math.floor(Math.random() * 10);
+					a = Math.floor(Math.random() * 10);
+					break;
+					case 3:
+					oper = " \xF7 ";
+					b = Math.floor(Math.random() * 9) + 1;
+					a = b * Math.floor(Math.random() * 10);
+				}	
+				qtitle = a + oper + b + " = __";    
+				var caption = document.createElement('big');
+				var boldcap = document.createElement('b');
+				boldcap.appendChild(document.createTextNode(i+1 + ": "));
+				caption.appendChild(boldcap);
+				caption.appendChild(document.createTextNode(qtitle));
+				caption.appendChild(document.createElement('br'));
+				var question = document.createElement('p');
+				question.appendChild(caption);
+				question.appendChild(document.createElement('br'));
+				questions.appendChild(question);
+			}
+			var footer = document.createElement('small');
+			var linktext = document.createElement('a');
+			linktext.setAttribute("href", "/qual/");
+			linktext.appendChild(document.createTextNode("request a positive integer number of problems"));
+			footer.appendChild(document.createTextNode("(You requested 0 qual problems. Unfortunately, in the real world, the qualifying exams will not have 0 problems. Please "));
+			footer.appendChild(linktext);
+			footer.appendChild(document.createTextNode(" and try again.)"));
+			questions.appendChild(footer);
+			questions.appendChild(document.createElement('br'));
+			questions.appendChild(document.createElement('br'));
+		}
+	}
+
+</script>
+	
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q9KZBHH9E7"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-Q9KZBHH9E7');
+        </script>
+        
+        <link rel="stylesheet" type="text/css" href="/style.css">
+        <style>
+            input {font-size:18px;}
+            button {font-size:24px;}
+
+            .dot {
+            height: 20px;
+            width: 20px;
+            background-color: #bbb;
+            border-radius: 50%;
+            padding: 0px;
+            display: inline-block;
+            text-align: center;
+            }
+            
+            .blankdot {
+            height: 20px;
+            width: 20px;
+            background-color: #fff;
+            border-radius: 50%;
+            padding: 0px;
+            display: inline-block;
+            text-align: center;
+            }
+        </style>
+        <title>Scale Builder</title>
+        <meta name="viewport" content="width=device-width" />
+        <meta name="description" content="Class from Mathcamp 2023." />
+        <meta name="author" content="Jonathan Love" />
+    </head>
+    <body style="margin-left:20px;margin-right:20px;">
+        <div id="page-wrap">
+        <h1>Scale Builder<hr></h1>
+        
+        Base frequency: 
+        <input id="basef" type="text" style='width:30%;' size=100 value="256" oninput="UpdateScale()"><br>
+        
+        Multiples of base frequency to include in the scale: <br>
+        (Simple mathematical expressions like 400+2*5^2 are allowed.
+        Multiples by powers of 2 are also included in the scale.)<br>
+        <div id="inputs"></div>
+        
+        <div id="piano" style="position: relative; 
+        background: #ffffff; height: 100px; 
+        -moz-user-select: -moz-none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;"></div>
+        <button onclick="stop()">
+            Stop (Space)
+        </button><br><br>
+
+        (Scale notes can be played by clicking on the dots, or by pressing the corresponding keyboard key. Frequencies above 2000 Hz will not be played)
+        
+        <hr>
+        <button id="optparams" onclick="ShowOptional()" style="font-size:14px">
+        Options</button><br><br>
+
+        <div id="Optionals" style="display:none">
+            Duration (seconds): <input id="inputtime" type="text" style='width:10%;font-size:14px' size=100 value="1"><br>
+            Volume (0 to 1): <input id="volume" type="text" style='width:10%;font-size:14px' size=100 value="0.1"><br>
+            Waveform: <input type="radio" id="waveform-sine" name="waveform" value="sine" checked>
+            <label for="waveform-sine">Sine</label>
+            <input type="radio" id="waveform-clicks" name="waveform" value="clicks">
+            <label for="waveform-clicks">Clicks</label><br>
+            Scale data (useful for saving scales or sharing scales with others):<br>
+            <input id="scaledata" type="text" style='width:70%;font-size:14px' size=100 oninput="UpdateScale(true)">
+        </div>
+
+        
+        <br><br>
+        <p style="font-size:8px">
+            Code sources:<br>
+            <a href="https://darthvanger.medium.com/synthesize-sound-with-javascript-sine-wave-940f9cd7dae2" target="_blank">Synthesizing sound with JavaScript: sine wave</a> by Ivan Sergiienko<br>
+            <a href="https://github.com/levinunnink/html-form-to-google-sheet" target="_blank">Submit a HTML form to Google Sheets</a> by Levi Nunnink<br>
+        </p>
+
+        <script src="https://unpkg.com/mathjs@11.8.2/lib/browser/math.js"></script>
+
+        <script type="text/javascript">
+            const SampleRate = 44100;
+            const UpperFreq = 2000;
+            const FadeTime = 0.05;
+            const ClickTime = 0.0005;
+            const Pi = Math.PI;
+            const NumNotes = 16;
+            const audios = [];
+            const prepnotes = {};
+
+            const pianopadding = 20;
+            const dotradius = 10;
+            const dotvertical = 30;
+
+            const inputfields = document.getElementById('inputs');
+            const piano = document.getElementById('piano');
+            const notenames = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p'];
+            const dotbylabel = {};
+            for (i=0; i<3; i++) {
+                f = 2**i;
+                var mark = document.createElement('span');
+                mark.setAttribute('id', 'mark' + f); 
+                mark.appendChild(document.createTextNode(f));
+                mark.setAttribute('data-type', "marking");   
+                mark.setAttribute('class', "blankdot");       
+                piano.appendChild(mark);
+            }
+
+            for (i=0; i < NumNotes; i++) {
+
+                var octs = 2;
+                
+                var newspan = document.createElement('span');
+                newspan.setAttribute('style', 'white-space: nowrap; overflow: hidden;');
+		        var inputbox = document.createElement('input');                
+                inputbox.setAttribute('type', 'text');
+                inputbox.setAttribute('id', 'input' + i);
+                inputbox.setAttribute('style', 'width:18%;');
+                inputbox.setAttribute('oninput', "UpdateScale(false)");
+                if (i == 0) { 
+                    octs = 3;
+                    inputbox.setAttribute('value', 1);
+                    inputbox.setAttribute('disabled', true);
+                }
+
+                var label = document.createElement('span');             
+                label.setAttribute('style', 'display: inline-block; width: 15px;');         
+                label.appendChild(document.createTextNode(notenames[i]));
+                
+                var spacing = document.createElement('span');             
+                spacing.setAttribute('style', 'display: inline-block; width: 5px;'); 
+
+                newspan.appendChild(label);
+                newspan.appendChild(inputbox);
+                newspan.appendChild(spacing);
+                inputfields.appendChild(newspan);
+                
+                for (n=0; n<octs; n++) {
+                    var pianodot = document.createElement('span');               
+                    pianodot.setAttribute('id', 'dot' + i + 'plus' + n);               
+                    pianodot.setAttribute('class', 'dot');
+                    pianodot.setAttribute('onClick', "play('dot" + i + "plus" + n + "')");     
+                    pianodot.setAttribute('data-i', i);    
+                    pianodot.setAttribute('data-type', "note"); 
+                    pianodot.setAttribute('data-oct', n);   
+                    pianodot.setAttribute('data-f', 0);    
+                    pianodot.appendChild(document.createTextNode(notenames[i]));
+                    piano.appendChild(pianodot);
+                    if (n == 0) {dotbylabel[notenames[i]] = pianodot.id};
+                }
+            }
+
+            UpdateScale(false);
+
+            function ShowOptional() { 
+                divelt = document.getElementById("Optionals");
+                if (divelt.style.display == 'none') {
+                    Optionals.style.display = '';
+                } else {
+                    Optionals.style.display = 'none';
+                }
+            }
+            
+            document.body.addEventListener("keydown", function(event) {
+                var active = document.activeElement;
+                if (dotbylabel.hasOwnProperty(event.key) && 
+                    !(active && (active.tagName.toLowerCase() === 'input'))) {
+                    play(dotbylabel[event.key]);
+                } else if (event.key == " ") {
+                    event.preventDefault();
+                    stop();
+                }
+            });
+
+            /**
+             * Play sound in browser
+             * @param array - array of values from -1 to +1 representing sound
+             * @param sampleRate - sampling rate to play with, e.g. 44100
+             * source: https://darthvanger.medium.com/synthesize-sound-with-javascript-sine-wave-940f9cd7dae2
+             */
+
+             function playSoundInner({ audioContext, audioBuffer }) {
+                var gainNode = audioContext.createGain();
+                var vol = Math.abs(document.getElementById("volume").value)
+                gainNode.gain.value = Math.min(vol, 1);
+                gainNode.connect(audioContext.destination);
+
+                const source = audioContext.createBufferSource();
+                audios.push(source);
+                source.connect(gainNode);
+                source.buffer = audioBuffer;
+                source.start();
+             }
+
+             function playSound({ array, sampleRate }) {
+                // We have to start with creating AudioContext
+                const audioContext = new AudioContext({sampleRate});
+                // create audio buffer of the same length as our array
+                const audioBuffer = audioContext.createBuffer(1, array.length, sampleRate);
+                // this copies our sine wave to the audio buffer
+                audioBuffer.copyToChannel(array, 0);
+                // some JavaScript magic to actually play the sound
+                playSoundInner({ audioContext:audioContext, audioBuffer:audioBuffer });
+
+                return [audioContext, audioBuffer];
+            }
+
+            function fadefactor(i, fadesamples, totsamples) {
+                if (i < fadesamples) {
+                    return i / fadesamples;
+                } else if (i > totsamples - fadesamples) {
+                    return (totsamples - i) / fadesamples;
+                } else {
+                    return 1;
+                }
+            }
+
+            function wave(i, f, fadesamples, totsamples) {
+                if (document.getElementById("waveform-sine").checked) {
+                    return fadefactor(i, fadesamples, totsamples) * Math.sin(2 * Pi * i * f / SampleRate);
+                } else if ((i * f / SampleRate) % 1 < ClickTime * f) {
+                    return fadefactor(i, fadesamples, totsamples)
+                } else {
+                    return 0
+                }
+            }
+
+            function play(dotlabel) {
+
+                f = Number(document.getElementById(dotlabel).dataset.f);
+                tottime = document.getElementById("inputtime").value;
+                if (tottime > 10) {
+                    tottime = 10;
+                }
+
+                if (f <= UpperFreq) {  
+                    issine = document.getElementById("waveform-sine").checked;  
+                    if (prepnotes.hasOwnProperty([f, tottime, issine])) {
+                        [audioContext, audioBuffer] = prepnotes[[f, tottime, issine]];
+                        playSoundInner({ audioContext:audioContext, audioBuffer:audioBuffer });
+                    } else {            
+                        totsamples = tottime * SampleRate;
+                        fadesamples = FadeTime * SampleRate;
+                        sineWaveArray = new Float32Array(totsamples);
+                        for (i = 0; i < totsamples; i++) {
+                            sineWaveArray[i] = wave(i, f, fadesamples, totsamples);
+                        }
+                        [audioContext, audioBuffer] = playSound({ array: sineWaveArray, sampleRate : SampleRate });
+                        prepnotes[[f, tottime, issine]] = [audioContext, audioBuffer];
+                    }
+                }
+            }
+            
+            function stop() {
+                for (i=0; i<audios.length; i++) {
+                    source = audios[i];
+                    source.stop();
+                }
+                audios.length = 0;
+            }
+
+            function UpdateScale(updatingLongData) {
+                
+                var PianoWidth = piano.offsetWidth - (2 * pianopadding);
+
+                
+                // make all the input boxes match
+                if (updatingLongData) {
+                    // split scaledata up and distribute among the small input boxes
+                    scaledata = document.getElementById("scaledata").value.split("&");
+                    document.getElementById("basef").value = scaledata[0];
+                    for (i=1; i < NumNotes; i++) {
+                        if (i < scaledata.length) {
+                            document.getElementById("input"+i).value = scaledata[i];
+                        } else {
+                            document.getElementById("input"+i).value = "";
+                        }
+                    }
+                } else {
+                    // collect the small input boxes and put into scaledata
+                    scaledata = document.getElementById("basef").value;
+                    for (i=1; i < NumNotes; i++) {
+                        nextinput = document.getElementById("input"+i).value;
+                        if (nextinput != "") {
+                            scaledata += "&";
+                            scaledata += nextinput;
+                        }
+                    }
+                    document.getElementById("scaledata").value = scaledata;
+                }
+                
+
+                // rescale the piano to fit within window
+                for (i=0; i<3; i++) {
+                    f = 2**i;
+                    mark = document.getElementById('mark' + f);
+                    mark.setAttribute('style', 'position: absolute; top: ' + (dotvertical + 2*dotradius) + 'px; left: ' + (Math.floor(i * (PianoWidth / 2)) + pianopadding - dotradius) + 'px;'); 
+                }
+
+                basef = math.evaluate(document.getElementById("basef").value);
+                alldots = piano.getElementsByTagName('*');
+
+                for (k=0; k < alldots.length; k++) {
+                    dot = alldots[k];
+
+                    // iterate over all "dots" in the scale that correspond to playable notes
+                    if (dot.dataset.type == "note") {
+                        var i = Number(dot.dataset.i);
+                        var oct = Number(dot.dataset.oct);
+                        var inp = document.getElementById("input" + i).value;
+                        try {
+                            
+                            var r = math.evaluate(inp); // parse the ratio
+                            if (math.typeOf(r) != 'number' || r <= 0) {
+                                throw "Values must be positive real numbers" 
+                            }
+                            adjustocts = Math.floor(Math.log(r)/Math.log(2)); // number of octaves outside of [1,2)
+                            f = basef * r * 2**oct / 2**adjustocts;
+                            newpos = (Math.log(r)/Math.log(2) + oct - adjustocts) * (PianoWidth / 2) + pianopadding - dotradius;
+                        } catch(err) {
+                            // if inputs make no sense, remove the dot from view
+                            f = 0;
+                            newpos = -1000;
+                        }
+                        // assign position and frequency to the dots
+                        dot.setAttribute('style', 'position: absolute; top: ' + dotvertical + 'px; left: ' + newpos + 'px;'); 
+                        dot.setAttribute('data-f', f); 
+                    }
+                }
+            }
+        
+        </script>
+    </body>
+</html>

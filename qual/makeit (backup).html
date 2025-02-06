@@ -1,0 +1,267 @@
+<html>
+<head>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q9KZBHH9E7"></script>
+	<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+
+	gtag('config', 'G-Q9KZBHH9E7');
+	</script>
+	
+    <title>Make Me a Qual</title>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <meta name="description" content="A tool for accessing and compiling questions from past Stanford qualifying exams." />
+    <meta name="author" content="Jonathan Love" />
+    <meta name="keywords" content="Jonathan Love, Qual, Qualifying Exam, Make me a Qual, Make me, Stanford, Mathematics, Math" />
+</head>
+
+<body>
+<div id="page-wrap">
+
+<!--Select: Algebra vs Analysis-->
+
+<h2>Make Me an
+<div style="display:inline-block"><input id='algradio' name='topic' type='radio' onClick="populateChecks('alg')" checked><label for='algradio'>Algebra</label> <input id='anaradio' name='topic' type='radio' onClick="populateChecks('ana')"><label for='anaradio'>Analysis </label>
+Qual</div></h2>
+
+<table>
+<tr valign="top">
+<td width="130px">
+
+<!--List of tests from which problems can be chosen. Will be populated by javascript.-->
+
+<h3>Select from:</h3>
+    <input id="testall" type="checkbox" onClick="toggleAll(this, 'test')" checked /><b><label id="testalllbl" for="testall">Select All</label></b>
+    <div id="tests"></div>
+</td>
+<td>
+
+<!--Select topics. Topic labels and questions taken from 2017 qual prep sessions. These lists are stored in the "qtags.js" file, which is imported to this file.-->
+
+<h3>Toppings available:</h3>
+    <input id="topall" type="checkbox" onClick="toggleAll(this, 'top')" checked /><b><label id="topalllbl" for="topall">Select All</label></b>
+    <div id="tops"></div>
+</td>
+</tr>
+</table>
+<div id="qmax"></div>
+<br>
+<!-- Option 1: Generate a random sample of problems from the selections. Uses the "randList()" function to select qnumrand of the selected problems in a random order. -->
+
+<form onSubmit="return largeTest('qlistvar')" id="makeitform" action="/qual/personalqual.html" method="get" target="_blank">
+    <input id="qlistvar" name="qlist" type="hidden" value="">
+</form>
+
+Generate 
+<input id="qnumrand" type="number" min="0" max="5" value="5" style="width:42px" maxlength="3" required> 
+random questions: 
+<input form="makeitform" onClick="randList()" type="submit" value="Make Me a Qual!">
+
+<br>
+<br>
+
+<!-- Option 2: Return all problems -->
+
+OR show all <div id="numsel" style="display:inline;">0</div> questions, ordered 
+<div style="display:inline-block"><input name='order' id='chronorder' type='radio' checked><label for='chronorder'>chronologically</label></div>
+<div style="display:inline-block"><input name='order' id='toporder' type='radio'><label for='toporder'>by topic:</label></div>
+<input form="makeitform" onClick="selectList();" type="submit" value="Retrieve Questions">
+
+<hr>
+
+<!-- Option 3: Return typed problems -->
+
+<h3>Problem Selector:</h3>
+Format: [alg / ana] + [year] + [S / F] + [M / A] + [question number], separated by commas.<br>
+Example: alg2010FM3, alg2012SA5, ana2012FA1<br>
+<input id="qlisttext" type="text" style='width:100%;' size=100>
+<input form="makeitform" onClick="typeList()" type="submit" value="Get Problems">
+<div>
+NOTE: The fall 2014 Algebra qual labelled morning problems A1-A5 and afternoon B1-B5. We do NOT use this coding here; to access problem A3, type alg2014FM3, and to access problem B3, type alg2014FA3.<br>
+Some of the algebra quals (e.g. Spring 2012) labelled afternoon problems with 6-10. We also do NOT use this coding. To access problem 6 of the Spring 2012 test, for instance, type alg2012SA1.<br><br>
+
+<center><small>"Make Me a Qual" &copy; Jonathan Love 2021. <a href="/">Return to homepage</a><br>
+Many screenshots courtesy of Mark Perlman. Originals available at<br>
+<a href="http://mathematics.stanford.edu/academics/graduate/phd-program/phd-qualifying-exams/past-qualifying-exams/">http://mathematics.stanford.edu/academics/graduate/phd-program/phd-qualifying-exams/past-qualifying-exams/</a></small></center>
+</div>
+</body>
+
+<!-- === SCRIPTS === -->
+
+<!-- qtags contains all the Topic tags for questions -->
+<script src="qtags.js"></script>
+
+<!-- Scripts for generating the page and updating data -->
+<script type="text/javascript">
+    var tags, numtags;
+    var qoptions = []; //Container for all selected problems
+    var tops = document.getElementById('tops');
+
+    function newCheckBox(lst, boxid, boxname, boxlbl) {
+		//lst: div element to add checkbox to.
+		//boxid: specific identifier for each box
+		//boxname: all checkboxes in a given list receive the same name
+		//boxlbl: words to appear next to the box
+
+		var input = document.createElement('input');
+		var label = document.createElement('label');
+
+		input.setAttribute('type', 'checkbox');
+		input.setAttribute('id', boxid);
+		input.setAttribute('name', boxname);
+		input.setAttribute('onClick', "updateList()");
+		label.setAttribute('for', boxid);
+		label.appendChild(document.createTextNode(boxlbl));
+
+		lst.appendChild(input);
+		lst.appendChild(label);
+		lst.appendChild(document.createElement("br"));
+    }
+
+    function populateChecks(topic) {
+		//Fill the Toppings list with either Algebra or Analysis tags
+
+		//Clears existing tags
+		while (tops.firstChild) {
+			tops.removeChild(tops.firstChild);
+		}
+
+		//Create a checkbox item for each tag
+		tags = qtags[topic]; //from qtags.js
+		numtags = tags.length;
+		for (var i = 0; i < numtags; i++) {
+			label = tags[i].name + " (" + tags[i].questions.length + ")";
+			newCheckBox(tops, tags[i].tag, 'top', label);
+		}
+
+		if (topic == 'ana') {
+			var contactme = document.createElement("a");
+			contactme.setAttribute('href', 'mailto:jonathanrlove@gmail.com');
+			contactme.appendChild(document.createTextNode("Contact me"));
+
+			var request = document.createElement("p");
+			request.appendChild(document.createTextNode("(Want to make better categories for Analysis problems? "));
+			request.appendChild(contactme);
+			request.appendChild(document.createTextNode(")"));
+			request.setAttribute('style', "font-size:10px; color:gray");
+			tops.appendChild(request);
+		};
+
+		//Calibrate the "Select All" checkbox and label
+		selall = document.getElementById("topall");
+		selall.checked = true;
+		toggleAll(selall,"top");
+    }
+
+    function toggleAll(source, cblist) {
+		checkboxes = document.getElementsByName(cblist);
+		for(var i=0; i<checkboxes.length; i++) {
+			checkboxes[i].checked = source.checked;
+		}
+		updateList();
+    }
+
+    function updateList() {
+		//Updates the questions that can be drawn from based on selections.
+		
+		//List of selected years
+		selectedyrs = testyrs.filter(function(x) { 
+			cbox = document.getElementById(x); return cbox.checked});
+		
+		//List of questions from selected tags and selected years 
+		newlist = [];
+		for(var i=0; i<numtags; i++) {
+			checkbox = document.getElementById(tags[i].tag);
+			if (checkbox.checked) {
+			//Take questions from tags[i] that appear in selectedyrs
+			toadd = tags[i].questions.filter(function(x) { 
+				return selectedyrs.indexOf(x.slice(3,8)) >= 0 });
+			newlist = newlist.concat(toadd);
+			}
+		}
+		qoptions = newlist;
+		document.getElementById('qnumrand').max = newlist.length;
+		document.getElementById('qmax').innerHTML = newlist.length + " problems match these constraints.";
+		document.getElementById('numsel').innerHTML = newlist.length;
+    }
+
+    //Add list of tests available
+    var tests = document.getElementById('tests');
+    for (var i=0; i<testyrs.length; i++) { //testyrs from qtags.js
+		//Create a checkbox item for each test
+		var year = testyrs[i].substring(0,4);
+		var season = "";
+		switch (testyrs[i].charAt(4)) {
+			case "F":
+			season = "Fall";
+			break;
+			case "S":
+			season = "Spring";
+		}
+		newCheckBox(tests, testyrs[i], 'test', year + " " + season);
+    }
+    toggleAll(document.getElementById("testall"),"test");
+
+    populateChecks('alg');
+</script>
+
+<!-- Scripts for compiling the final list of problems -->
+<script type="text/javascript">
+    function randList() {
+		num = document.getElementById("qnumrand").value;
+		biglst = qoptions.slice();
+
+		//Choose num elements at random from biglst (without replacement)
+		newlst = [];
+		while (newlst.length < num && biglst.length > 0) {
+			newchoice = Math.floor(Math.random() * biglst.length);
+			newlst.push(biglst.splice(newchoice,1));
+		}
+		document.getElementById("qlistvar").value = newlst.join("-");
+    }
+
+    //Assign chronological order to problems
+    function val(q) {
+		value = 1000 * parseInt(q.substring(3,7));
+		if (q.charAt(7).toUpperCase() == "F") {
+			value = value + 100;
+		}
+		if (q.charAt(8).toUpperCase() == "A") {
+			value = value + 10;
+		}
+		value = value + parseInt(q.substring(9));
+		return value;
+    }
+
+    function selectList() {
+		if (document.getElementById("chronorder").checked) {
+			newlst = qoptions.slice().sort(function(a,b){return val(a)-val(b)});
+			document.getElementById("qlistvar").value = newlst.join("-");
+		} else {
+			document.getElementById("qlistvar").value = qoptions.join("-");
+		}
+    }
+
+    function typeList() {
+		//Parse out all whitespace and punctuation
+		typed = document.getElementById("qlisttext").value;
+		parsed = typed.replace(/[.,\/#!$%\^&\*;:{}\\=\-\'\[\]_`~()]/g," ").replace(/\s{1,}/g,'-');
+		if (parsed.charAt(parsed.length-1) == "-") {
+			parsed = parsed.slice(0,-1);
+		}
+		document.getElementById("qlistvar").value = parsed;
+    }
+
+    function largeTest(lstname) {
+		numqs = (1 + document.getElementById(lstname).value.length) / 11;
+		if (numqs > 25) {
+			return confirm("Creating a large test (" + numqs + " questions). Continue?");
+		} else {
+			return true;
+		}
+    }
+</script>
+</html>

@@ -1,0 +1,123 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+     body {
+         font-family: Menlo;
+         font-size: 12px;
+     }
+
+     pre {
+         border: 1px solid black;
+         border-radius: 2px;
+         margin: 0;
+         padding: 4px;
+     }
+
+     pre > code {
+         color: #bfbfbf;
+     }
+
+
+     .col {
+         width: 40%;
+         min-width: 600px;
+         margin: 1em;
+         float: left
+     }
+
+     canvas.paper {
+         border: 1px solid gray;
+     }
+
+    </style>
+    <link rel='stylesheet' type='text/css' href='webppl-editor.css'>
+    <script src="webppl-editor.js"></script>
+    <script src="jquery.js"></script>
+    <script src="paper.js"></script>
+    <script src="draw.js"></script>
+    <meta name="robots" content="noindex">
+  </head>
+  <body>
+
+
+
+
+<!-- 
+Instructions:
+
+Place text in <h1>Example</h1> to make headers. Replace 1 with larger numbers for subheaders.
+
+To insert a code box, type <pre><code></code></pre>. If you want the box pre-filled, you can put anything you want in the middle, as in 
+
+<pre><code>flip() ? flip(.7) : flip(.1)</code></pre>
+
+Happy coding! --!>
+
+
+
+
+
+<!-- ONLY EDIT BELOW THIS --!>
+
+
+
+
+
+
+<h1>Section title</h1>
+
+<h2>Subsection</h2>
+
+Here's some sample code to run!
+<pre><code>flip() ? flip(.7) : flip(.1)</code></pre>
+
+Now write something yourself:
+<pre><code></code></pre>
+
+<h2>Subsection</h2>
+      
+Another sammple question:
+<pre><code>
+var foo = flip();
+display([foo, foo, foo]);
+</code></pre>
+
+Question: Write code that will output 23.
+<pre><code></code></pre>
+
+
+
+
+<!-- ONLY EDIT ABOVE THIS --!>
+
+
+
+
+</body>
+
+<script>
+
+   // load scratch pad contents
+
+   $("#ed-scratch code").text(localStorage.getItem('ed-scratch'));
+
+   var scratchComp;
+   $("pre").map(function(i,el) {
+       var comp = wpEditor.setup(el, {language: "webppl"});
+       if (el.id == 'ed-scratch') {
+           scratchComp = comp;
+       }
+   });
+
+   // save scratch pad contents
+
+   window.onbeforeunload = function() { localStorage.setItem('ed-scratch', scratchComp.getCode()) }
+
+   var throwString = function() { throw 'string error' };
+  </script>
+
+
+  <script src="//s3-us-west-2.amazonaws.com/cdn.webppl.org/webppl-v0.9.7.js"></script>
+  
+</html>

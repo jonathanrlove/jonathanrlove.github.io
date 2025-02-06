@@ -1,0 +1,109 @@
+<html>
+<head>
+    <title>Make Me a Qual</title>
+	<meta name="robots" content="noindex">
+</head>
+
+<body>
+<h2>Make Me an <input id='algradio' name='topic' type='radio' onClick="populateChecks('alg')" checked><label for='algradio'>Algebra</label> <input id='anaradio' name='topic' type='radio' onClick="populateChecks('ana')" ><label for='anaradio'>Analysis</label> Qual</h2>
+
+<div id="qual-maker" style="display:none;">
+<h3>Toppings Available:</h3>
+    <input id="selectall" type="checkbox" onClick="toggleAll(this)" />
+    <b><label id="selalllbl" for="selectall">Select All</label></b>
+    <div id="options"></div>
+
+
+<form action="/~jonlove/cgi-bin/personalqual.php" method="post" target="_blank">
+    How many questions? ("0" will include all selected in categorical order)<br>
+    <input id="qnum" type="number" min="0" max="5" value="5" name="qnum" required>
+    <input id="qlist" name="qlist" type="hidden" value=[]>
+    <input type="submit" value="Make Me a Qual!">
+</form>
+</div>
+<br>
+<h3>Problem Selector:</h3>
+Format: [alg / ana] + [year] + [S / F] + [M / A] + [question number], separated by commas.<br>
+Example: alg2010FM3, alg2012SA5, ana2012FA1
+<form action="/~jonlove/cgi-bin/personalqual.php" method="post" target="_blank">
+    <input id="qnum" name="qnum" type="hidden" value="0">
+    <input id="qlist" name="qlist" type="text" size=100>
+    <input type="submit" value="Get Problems">
+</form>
+<div>
+NOTE: The fall 2014 Algebra qual labelled morning problems A1-A5 and afternoon B1-B5. We do NOT use this coding here; to access problem A3, type alg2014FM3, and to access problem B3, type alg2014FA3.<br>
+Some of the algebra quals (e.g. Spring 2012) labelled afternoon problems with 6-10. We also do NOT use this coding. To access problem 6 of the Spring 2012 test, for instance, type alg2012SA1.<br><br>
+
+As of March 2017, all problems from Spring 2009 to Fall 2016 are available through this system.<br><br>
+
+<script src="qtags.js"></script>
+<script type="text/javascript">
+    var tags, numtags;
+    var cbs = document.getElementById('options');
+    var disp = document.getElementById('qual-maker');
+
+    function populateChecks(topic) {
+	disp.style = "display:block;";
+	while (cbs.firstChild) {
+	    cbs.removeChild(cbs.firstChild);
+	}
+
+	tags = qtags[topic];
+	numtags = tags.length;
+	totqs = 0;
+	for (var i = 0; i < numtags; i++) {
+	    var input = document.createElement('input');
+	    var label = document.createElement('label');
+
+	    input.setAttribute('type', 'checkbox');
+	    input.setAttribute('id', tags[i].tag);
+	    input.setAttribute('name', 'foo');
+	    input.setAttribute('onClick', "changeList()");
+	    label.setAttribute('for', tags[i].tag);
+	    label.appendChild(document.createTextNode(tags[i].name + " (" + tags[i].questions.length + ")"));
+
+	    cbs.appendChild(input);
+	    cbs.appendChild(label);
+	    cbs.appendChild(document.createElement("br"));
+	    totqs += tags[i].questions.length;
+	}
+	selall = document.getElementById("selectall");
+	selall.label = "test"
+	selall.checked = true;
+	toggleAll(selall);
+	document.getElementById("selalllbl").innerHTML = "Select all (" + totqs + ")";
+    }
+
+    function toggleAll(source) {
+	checkboxes = document.getElementsByName('foo');
+	for(var i=0, n=checkboxes.length;i<n;i++) {
+	    checkboxes[i].checked = source.checked;
+	}
+	changeList();
+    }
+
+    function changeList() {
+	newlist = [];
+	for(var i=0, n=numtags;i<n;i++) {
+	    checkbox = document.getElementById(tags[i].tag);
+	    if (checkbox.checked) {
+		newlist = newlist.concat(tags[i].questions);
+	    }
+	}
+	document.getElementById('qnum').setAttribute('max',newlist.length);
+	document.getElementById('qlist').setAttribute('value',newlist);
+    }
+    if (document.getElementById('algradio').checked) {
+	populateChecks('alg');
+    }
+    if (document.getElementById('anaradio').checked) {
+	populateChecks('ana');
+    }
+</script>
+
+
+<center><small>"Make Me a Qual" &copy; Jonathan Love 2017, <a href="http://stanford.edu/~jonlove/qual/makeit.html">http://stanford.edu/~jonlove/qual/makeit.html</a><br>
+Screenshots courtesy of Mark Perlman. Originals available at<br>
+<a href="http://mathematics.stanford.edu/academics/graduate/phd-program/phd-qualifying-exams/past-qualifying-exams/">http://mathematics.stanford.edu/academics/graduate/phd-program/phd-qualifying-exams/past-qualifying-exams/</a></small></center>
+</body>
+</html>

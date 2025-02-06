@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q9KZBHH9E7"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-Q9KZBHH9E7');
+        </script>
+        
+        <link rel="stylesheet" type="text/css" href="/style.css">
+        <style>
+            input {font-size:20px;}
+            button {font-size:24px;}
+            input[type=radio] {width:15px; height:15px;}
+            input[type=checkbox] {width:15px; height:15px;}
+        </style>
+        <title>Frequency Pair Tester</title>
+        <meta name="viewport" content="width=device-width" />
+        <meta name="description" content="Class from Mathcamp 2023." />
+        <meta name="author" content="Jonathan Love" />
+    </head>
+    <body style="margin-left:20px;margin-right:20px;">
+        <div id="page-wrap">
+        <h1>Frequency Pair Tester<hr></h1>
+         
+        Input two frequencies to play. (simple mathematical expressions like 400+2*5^2 are allowed)<br>
+        <br>
+        <input id="input1" type="text" style='width:30%;' size=100 value="500" oninput="DisableScoreButtons()"> Hz; 
+        <input id="input2" type="text" style='width:30%;' size=100 value="500" oninput="DisableScoreButtons()"> Hz<br>
+        <button onclick="play()">
+            Play (Enter)
+        </button> 
+        <button onclick="stop()">
+            Stop (Space)
+        </button><br><br>
+        
+        Chili level:<br>
+        <button id="score1" onclick="submitscore(1)" disabled>
+            -1-
+        </button> <button id="score2" onclick="submitscore(2)" disabled>
+            -2-
+        </button> <button id="score3" onclick="submitscore(3)" disabled>
+            -3-
+        </button> <button id="score4" onclick="submitscore(4)" disabled>
+            -4-
+        </button> <button id="score5" onclick="submitscore(5)" disabled>
+            -5-
+        </button> <button id="score6" onclick="submitscore(6)" disabled>
+            -6-
+        </button> <button id="score7" onclick="submitscore(7)" disabled>
+            -7-
+        </button><br><br>
+        1 = Mild, consonant, pure, simple, easy to listen to<br>
+        7 = Spicy, dissonant, harsh, complex, difficult to listen to
+
+        <hr>
+        <button id="optparams" onclick="ShowOptional()" style="font-size:14px">
+        Options</button><br><br>
+
+        <div id="Optionals" style="display:none">
+            <input id="fastmode" type="checkbox"> <label for="fastmode">FAST MODE</label> (ranking generates new random pair) <br>
+            Duration (seconds): <input id="inputtime" type="text" style='width:10%;font-size:14px' size=100 value="1"><br>
+            Volume (0 to 1): <input id="volume" type="text" style='width:10%;font-size:14px' size=100 value="0.1"><br>
+            Timing: <input type="radio" id="timing-simul" name="timing" value="simul" checked oninput="DisableScoreButtons()">
+            <label for="timing-simul">Simultaneous</label>
+            <input type="radio" id="timing-cons" name="timing" value="cons" oninput="DisableScoreButtons()">
+            <label for="timing-cons">Consecutive</label><br>
+            Waveform: <input type="radio" id="waveform-sine" name="waveform" value="sine" checked oninput="DisableScoreButtons()">
+            <label for="waveform-sine">Sine</label>
+            <input type="radio" id="waveform-clicks" name="waveform" value="clicks" oninput="DisableScoreButtons()">
+            <label for="waveform-clicks">Clicks</label><br>
+            <a href="https://www.desmos.com/calculator/rsicz7ykgd" target="_blank">Graphical investigation</a><br>
+            <a href="https://docs.google.com/spreadsheets/d/1fYidNeL75yifpraEDwIUx24xtiQe3wyP0maZsNC9Ko0/edit?usp=sharing" target="_blank">Chili level data</a>
+        </div>
+        <br>
+        <p style="font-size:8px">
+            Code sources:<br>
+            <a href="https://darthvanger.medium.com/synthesize-sound-with-javascript-sine-wave-940f9cd7dae2" target="_blank">Synthesizing sound with JavaScript: sine wave</a> by Ivan Sergiienko<br>
+            <a href="https://github.com/levinunnink/html-form-to-google-sheet" target="_blank">Submit a HTML form to Google Sheets</a> by Levi Nunnink<br>
+        </p>
+
+        <script src="https://unpkg.com/mathjs@11.8.2/lib/browser/math.js"></script>
+
+        <script type="text/javascript">
+            const SampleRate = 44100;
+            const UpperFreq = 2000;
+            const FadeTime = 0.05;
+            const ClickTime = 0.0005;
+            const Pi = Math.PI;
+
+            var rand1 = 0;
+            var rand2 = 0;
+
+            const audios = [];
+            
+            document.body.addEventListener("keydown", function(event) {
+                var active = document.activeElement;
+
+                if (event.key == "Enter") {
+                    active.blur();
+                    play();
+                } else if (event.key == " ") {
+                    event.preventDefault();
+                    if (active && (active.tagName.toLowerCase() === 'button')) {
+                        active.blur();
+                    }
+                    stop();
+                } else if (["1","2","3","4","5","6","7"].includes(event.key) && 
+                           !(active && (active.tagName.toLowerCase() === 'input'))) {
+                    n = Number(event.key);
+                    if (document.getElementById("score" + n).disabled == false) {
+                        submitscore(n);
+                    }
+                }
+            });
+
+            function ShowOptional() { 
+                divelt = document.getElementById("Optionals");
+                if (divelt.style.display == 'none') {
+                    Optionals.style.display = '';
+                } else {
+                    Optionals.style.display = 'none';
+                }
+            }
+
+            /**
+             * Play sound in browser
+             * @param array - array of values from -1 to +1 representing sound
+             * @param sampleRate - sampling rate to play with, e.g. 44100
+             * source: https://darthvanger.medium.com/synthesize-sound-with-javascript-sine-wave-940f9cd7dae2
+             */
+             function playSound({ array, sampleRate }) {
+                // We have to start with creating AudioContext
+                const audioContext = new AudioContext({sampleRate});
+                // create audio buffer of the same length as our array
+                const audioBuffer = audioContext.createBuffer(1, array.length, sampleRate);
+                // this copies our sine wave to the audio buffer
+                audioBuffer.copyToChannel(array, 0);
+                // some JavaScript magic to actually play the sound
+                var gainNode = audioContext.createGain();
+                var vol = Math.abs(document.getElementById("volume").value)
+                gainNode.gain.value = Math.min(vol, 1);
+                gainNode.connect(audioContext.destination);
+
+                const source = audioContext.createBufferSource();
+                audios.push(source);
+                source.connect(gainNode);
+                source.buffer = audioBuffer;
+                source.start();
+            }
+
+            function fadefactor(i, fadesamples, totsamples) {
+                if (i < fadesamples) {
+                    return i / fadesamples;
+                } else if (i > totsamples - fadesamples) {
+                    return (totsamples - i) / fadesamples;
+                } else {
+                    return 1;
+                }
+            }
+
+            function wave(i, f, fadesamples, totsamples, delay) {
+                if (document.getElementById("waveform-sine").checked) {
+                    return fadefactor(i-delay, fadesamples, totsamples) * Math.sin(2 * Pi * i * f / SampleRate);
+                } else if ((i * f / SampleRate) % 1 < ClickTime * f) {
+                    return fadefactor(i-delay, fadesamples, totsamples)
+                } else {
+                    return 0
+                }
+            }
+
+            function GetTextInputs() {
+                in1 = document.getElementById("input1").value;
+                in2 = document.getElementById("input2").value;
+                intime = document.getElementById("inputtime").value;
+
+                // check if inputs are valid
+                if (in1 == "") {f1 = 0} else {f1 = math.evaluate(in1)};
+                if (in2 == "") {f2 = 0} else {f2 = math.evaluate(in2)};
+                if (intime == "") {tottime = 0} else {tottime = math.evaluate(intime)};
+                
+                if (math.typeOf(f1) != 'number' || math.typeOf(f2) != 'number' || math.typeOf(tottime) != 'number'
+                    || f1 < 0 || f2 < 0 || tottime < 0) {
+                    throw "Values must be non-negative real numbers" 
+                }
+                return [f1, f2, tottime];
+            }
+
+            function DisableScoreButtons() {
+                for (i = 1; i <= 7; i++) {
+                    buttonid = 'score' + i;
+                    document.getElementById(buttonid).disabled = true;
+                }
+            }
+
+            function play() {
+                try {
+                    [f1, f2, tottime] = GetTextInputs();
+
+
+                    if (f1 > UpperFreq || f2 > UpperFreq) {
+                        throw "Frequencies must be between 0 and 2000 Hz" 
+                    }                  
+                    if (tottime > 10) {
+                        throw "Duration must be between 0 and 10 seconds"  
+                    }
+                    totsamples = tottime * SampleRate;
+                    fadesamples = FadeTime * SampleRate;
+                    sineWaveArray = new Float32Array(totsamples);
+                    
+                    for (i = 0; i < totsamples; i++) {
+                        if (document.getElementById("timing-simul").checked) {
+                            sineWaveArray[i] = (1/2) * (wave(i, f1, fadesamples, totsamples, 0) + wave(i, f2, fadesamples, totsamples, 0));
+                        } else if (i < totsamples / 2) {
+                            sineWaveArray[i] = wave(i, f1, fadesamples, Math.floor(totsamples/2), 0);
+                        } else {
+                            sineWaveArray[i] = wave(i, f2, fadesamples, Math.floor(totsamples/2), Math.floor(totsamples/2));
+                        }
+                    }
+                    playSound({ array: sineWaveArray, sampleRate : SampleRate });
+                    if (document.getElementById("timing-simul").checked) {
+                        for (i = 1; i <= 7; i++) {
+                            buttonid = 'score' + i;
+                            document.getElementById(buttonid).disabled = false;
+                        }
+                    }
+                } catch(err) {
+                    alert(err);
+                }
+            }
+
+            function stop() {
+                for (i=0; i<audios.length; i++) {
+                    source = audios[i];
+                    source.stop();
+                }
+                audios.length = 0;
+            }
+
+            function submitscore(score) {
+                try {
+                    [f1, f2, tottime] = GetTextInputs();
+
+                    stop();
+                    
+                    const request1 = new XMLHttpRequest();
+                    const formData1 = new FormData();
+                    formData1.append("Frequency 1", f1);
+                    formData1.append(score, f2);
+                    request1.open("POST", "https://script.google.com/macros/s/AKfycbxxJL-b5ng6vk0RX0539nmICbaKcJRRdaxfCVdPUIkmVy9o8QWR4leymTRrTh8jduc3/exec");
+                    request1.send(formData1);
+
+                    const request2 = new XMLHttpRequest();
+                    const formData2 = new FormData();
+                    formData2.append("Frequency 1", f2);
+                    formData2.append(score, f1);
+                    request2.open("POST", "https://script.google.com/macros/s/AKfycbxxJL-b5ng6vk0RX0539nmICbaKcJRRdaxfCVdPUIkmVy9o8QWR4leymTRrTh8jduc3/exec");
+                    request2.send(formData2);
+
+                    DisableScoreButtons();
+                    if (document.getElementById("fastmode").checked) {
+                        document.getElementById("input1").value = Math.floor(Math.random() * 800 + 200);
+                        document.getElementById("input2").value = Math.floor(Math.random() * 800 + 200);
+                    }
+                } catch(err) {
+                    alert(err);
+                }
+            }
+        
+        </script>
+    </body>
+</html>
