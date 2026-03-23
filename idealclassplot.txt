@@ -1,0 +1,22 @@
+x = polygen(ZZ, 'x')
+
+D = -1000007
+K.<a> = NumberField(x^2 - D)
+if D % 2 == 0:
+    s = a
+else:
+    s = (1+a)/2
+
+points = []
+for I in K.class_group():
+    gens = I.ideal().gens()
+    if len(gens) == 1:
+        gens = [1,s]
+    else:
+        assert len(gens) == 2
+    tau = gens[1]/gens[0]
+    comps = [tau.trace()/2, (((tau - tau.trace()/2)/a).trace()/2)*sqrt(-D)]
+    points += [comps]
+print(points)
+list_plot(points)
+            
