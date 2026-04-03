@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Beat Creator</title>
+<style>
+  body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 20px; }
+  #box {
+    width: 100%;
+    max-width: 800px;
+    height: 144px; /* three times taller */
+    border: 2px solid #333;
+    position: relative;
+    margin-bottom: 25px;
+    cursor: crosshair;
+    background: #fafafa;
+    box-sizing: border-box;
+    /* margin-left: 10px;  add left margin */
+  }
+  .gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #d0d0d0;
+    pointer-events: none;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    background: #d9534f;
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .controls { max-width: 800px; }
+  label { display: block; margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .btn { padding: 8px 12px; border-radius: 6px; border: 1px solid #333; background: #fff; cursor: pointer; }
+  #freqSlider { width: 100%; }
+  .x-label {
+    position: absolute;
+    top: 150px; /* slightly below the box */
+    font-size: 9px;
+    transform: translateX(-50%);
+    user-select: none; /* prevent label selection */
+    cursor: default; /* keep normal cursor */
+  }
+</style>
+</head>
+<body>
+<h2>Beat Creator</h2>
+<p>Click inside the box to add a dot. Drag a dot to move it (anywhere in the box). Click without dragging to remove it.</p>
+<div id="box" aria-label="waveform-box"></div>
+<div class="controls">
+  <label>
+    Frequency: <span id="freqValue">1</span> Hz<br />
+    <input type="range" id="freqSlider" min="1" max="500" value="1" />
+  </label>
+  <div class="row">
+    <button id="playPauseBtn" class="btn">Play</button>
+    <button id="clearBtn" class="btn">Clear Dots</button>
+  </div>
+</div>
+<script>
+let ctx = null;
+let osc = null;
+let playing = false;
+let dotPositions = [];
+let dragTarget = null;
+let dragStartTime = 0;
+let dragging = false;
+
+const box = document.getElementById('box');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const clearBtn = document.getElementById('clearBtn');
+const slider = document.getElementById('freqSlider');
+const freqValue = document.getElementById('freqValue');
+
+function buildGrid() {
+  const n = 16;
+  for (let i = 1; i < n; i++) {
+    const g = document.createElement('div');
+    g.className = 'gridline';
+    g.style.left = (i / n * 100) + '%';
+    box.appendChild(g);
+  }
+  const special = [1/6, 1/5, 1/3, 2/5, 3/5, 2/3, 4/5, 5/6];
+  special.forEach(r => {
+    const g = document.createElement('div');
+    g.className = 'gridline';
+    g.style.left = (r*100)+'%';
+    g.style.borderLeft = '1px dashed #aaa';
+    g.style.background = '#ffffff';
+    box.appendChild(g);
+  });
+
+  const labels = [ [0,'0'], [1/16,'1/16'], [1/8,'1/8'], [1/6,'1/6'], [1/5,'1/5'], [1/4,'1/4'], [1/3,'1/3'], [3/8,'3/8'], [2/5,'2/5'],  [7/16,'7/16'], [1/2,'1/2'],  [9/16,'9/16'], [3/5, '3/5'], [5/8,'5/8'], [3/4,'3/4'], [2/3,'2/3'], [4/5,'4/5'], [5/6,'5/6'], [7/8,'7/8'], [15/16,'15/16'], [1,'1'] ];
+  labels.forEach(([r,text]) => {
+    const label = document.createElement('div');
+    label.className = 'x-label';
+    label.style.left = (r*100)+'%';
+    label.textContent = text;
+    box.appendChild(label);
+  });
+}
+
+function renderDots() {
+  [...box.querySelectorAll('.dot')].forEach(el => el.remove());
+  const w = box.clientWidth;
+  const h = box.clientHeight;
+  dotPositions.forEach((dot, idx) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.style.left = dot.x + 'px';
+    d.style.top = dot.y + 'px';
+    d.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      dragTarget = { index: idx, el: d };
+      dragStartTime = performance.now();
+      dragging = false;
+    });
+    box.appendChild(d);
+    // If this dot is currently being dragged, assign its element immediately
+    if (dragTarget && dragTarget.index === idx && !dragTarget.el) dragTarget.el = d;
+  });
+}
+
+box.addEventListener('mousedown', e => {
+  if (e.target.classList.contains('dot')) return;
+  const rect = box.getBoundingClientRect();
+  const x = Math.max(0, Math.min(box.clientWidth, e.clientX - rect.left));
+  const y = Math.max(0, Math.min(box.clientHeight, e.clientY - rect.top));
+  dotPositions.push({x, y});
+  renderDots();
+  // Immediately assign dragTarget to the newly created dot's element
+  const newIndex = dotPositions.length - 1;
+  const newEl = box.querySelectorAll('.dot')[newIndex];
+  dragTarget = { index: newIndex, el: newEl };
+  dragging = true;
+  updateWaveform();
+});
+
+box.addEventListener('mousemove', e => {
+  if (!dragTarget) return;
+  dragging = true;
+  const rect = box.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  x = Math.max(0, Math.min(box.clientWidth, x));
+  y = Math.max(0, Math.min(box.clientHeight, y));
+  dotPositions[dragTarget.index] = {x, y};
+  if(dragTarget.el) { dragTarget.el.style.left = x + 'px'; dragTarget.el.style.top = y + 'px'; }
+  updateWaveform();
+});
+
+window.addEventListener('mouseup', e => {
+  if (!dragTarget) return;
+  const clickDuration = performance.now() - dragStartTime;
+  const wasClick = clickDuration < 200 && !dragging;
+  if (wasClick) {
+    dotPositions.splice(dragTarget.index, 1);
+    updateWaveform();
+  }
+  dragTarget = null;
+  dragging = false;
+  renderDots();
+});
+
+slider.addEventListener('input', () => {
+  freqValue.textContent = slider.value;
+  if (osc) osc.frequency.setValueAtTime(Number(slider.value), ctx.currentTime);
+});
+
+playPauseBtn.addEventListener('click', async () => {
+  if (!playing) await startSound(); else stopSound();
+});
+clearBtn.addEventListener('click', () => {
+  dotPositions = [];
+  updateWaveform();
+  renderDots();
+});
+
+async function ensureAudioContext() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') await ctx.resume();
+}
+
+async function startSound() {
+  await ensureAudioContext();
+  playing = true;
+  playPauseBtn.textContent = 'Pause';
+  osc = ctx.createOscillator();
+  osc.frequency.setValueAtTime(Number(slider.value), ctx.currentTime);
+  updateWaveform(osc);
+  osc.connect(ctx.destination);
+  osc.start();
+}
+
+function stopSound() {
+  playing = false;
+  playPauseBtn.textContent = 'Play';
+  if (osc) { try { osc.stop(); } catch(e){} osc.disconnect(); osc = null; }
+}
+
+function updateWaveform(oscillator = osc) {
+  if (!oscillator) return;
+  const N = 10000;
+  const real = new Float32Array(N);
+  const imag = new Float32Array(N);
+  const width = box.clientWidth;
+  const height = box.clientHeight;
+  dotPositions.forEach(dot => {
+    const phase = (dot.x / width) * 2 * Math.PI;
+    const amp = 1 - (dot.y / height); // volume based on vertical position
+    for (let k = 1; k < N; k++) {
+      real[k] += -amp * Math.sin(k * phase)/k;
+      imag[k] += amp * Math.cos(k * phase)/k;
+    }
+  });
+  const wave = ctx.createPeriodicWave(real, imag, { disableNormalization: true });
+  oscillator.setPeriodicWave(wave);
+}
+
+buildGrid();
+renderDots();
+</script>
+
+<br><br><br><br>
+
+<center><small>Content last updated March 2026. Created with the assistance of ChatGPT. <br><a href="/">Return to homepage</a></small></center>
+</body>
+</html>

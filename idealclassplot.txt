@@ -1,6 +1,6 @@
 x = polygen(ZZ, 'x')
 
-D = -1000007
+for D in range(-1,-100,-1):
 K.<a> = NumberField(x^2 - D)
 if D % 2 == 0:
     s = a
@@ -20,3 +20,15 @@ for I in K.class_group():
 print(points)
 list_plot(points)
             
+
+
+
+
+https://jonathanlove.info/idealclassplot.txt
+
+
+
+
+
+
+
