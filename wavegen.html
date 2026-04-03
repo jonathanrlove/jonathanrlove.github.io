@@ -56,18 +56,19 @@
 <div id="box" aria-label="waveform-box"></div>
 <div class="controls">
   <label>
-    Frequency: <span id="freqValue">1</span> Hz<br />
-    <input type="range" id="freqSlider" min="1" max="500" value="1" />
+    Tempo: <input type="text" id="freqValue" value="80" id="freqValue" size="5"></input> beats per minute<br />
+    <input type="range" id="freqSlider" min="20" max="300" value="80" />
   </label>
   <div class="row">
-    <button id="playPauseBtn" class="btn">Play</button>
+    <button id="playPauseBtn" class="btn">Pause</button>
     <button id="clearBtn" class="btn">Clear Dots</button>
+    <button id="extendBtn" class="btn">Extend</button>
   </div>
 </div>
 <script>
 let ctx = null;
 let osc = null;
-let playing = false;
+let playing = true;
 let dotPositions = [];
 let dragTarget = null;
 let dragStartTime = 0;
@@ -76,6 +77,7 @@ let dragging = false;
 const box = document.getElementById('box');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const clearBtn = document.getElementById('clearBtn');
+const extendBtn = document.getElementById('extendBtn');
 const slider = document.getElementById('freqSlider');
 const freqValue = document.getElementById('freqValue');
 
@@ -141,6 +143,7 @@ box.addEventListener('mousedown', e => {
   dragTarget = { index: newIndex, el: newEl };
   dragging = true;
   updateWaveform();
+  if (playing && !osc) startSound();
 });
 
 box.addEventListener('mousemove', e => {
@@ -170,18 +173,41 @@ window.addEventListener('mouseup', e => {
 });
 
 slider.addEventListener('input', () => {
-  freqValue.textContent = slider.value;
-  if (osc) osc.frequency.setValueAtTime(Number(slider.value), ctx.currentTime);
+  freqValue.value = slider.value;
+  updatefreq();
 });
 
 playPauseBtn.addEventListener('click', async () => {
   if (!playing) await startSound(); else stopSound();
 });
+
 clearBtn.addEventListener('click', () => {
   dotPositions = [];
   updateWaveform();
   renderDots();
 });
+
+freqValue.addEventListener('input', () => {
+  if (Number(freqValue.value) > 20000) freqValue.value = 20000;
+  slider.value = freqValue.value;
+  updatefreq();
+});
+
+extendBtn.addEventListener('click', async () => {
+  if (extendBtn.textContent == 'Extend') {
+    extendBtn.textContent = 'Reduce';
+    slider.max = 10000;
+  } else {
+    extendBtn.textContent = 'Extend';
+    slider.max = 300;
+    freqValue.value = slider.value;
+    updatefreq();
+  }
+});
+
+async function updatefreq() {
+  if (osc) osc.frequency.setValueAtTime(Number(freqValue.value)/60, ctx.currentTime);
+}
 
 async function ensureAudioContext() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -193,7 +219,7 @@ async function startSound() {
   playing = true;
   playPauseBtn.textContent = 'Pause';
   osc = ctx.createOscillator();
-  osc.frequency.setValueAtTime(Number(slider.value), ctx.currentTime);
+  updatefreq();
   updateWaveform(osc);
   osc.connect(ctx.destination);
   osc.start();
