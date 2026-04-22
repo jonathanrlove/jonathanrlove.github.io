@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Rhythm Creator</title>
+<style>
+  body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 20px; }
+  #box {
+    width: 100%;
+    max-width: 800px;
+    height: 80px;
+    border: 1.5px solid #666;
+    position: relative;
+    margin-bottom: 45px;
+    //cursor: crosshair;
+    //background: #fafafa;
+    box-sizing: border-box;
+    /* margin-left: 10px;  add left margin */
+  }
+  .gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #d0d0d0;
+    pointer-events: none;
+  }
+  .string {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    top: 30%;
+    width: 100%;
+    height: 2.5px;
+    background: #000033;
+    transform: translate(0%, -50%);
+    pointer-events: none;
+  }
+  .playstring {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    top: 30%;
+    width: 100%;
+    height: 5px;
+    background: #2020dc;
+    transform: translate(0%, -50%);
+    pointer-events: none;
+  }
+  .clickable {
+    position: absolute;
+    top: 30%;
+    left: 10%;
+    width: 90%;
+    height: 20%;
+    transform: translate(0%, -50%);
+    cursor : pointer;
+  }
+  .dot {
+    width: 20px;
+    height: 50px;
+    background: #d9534f;
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -52%) scale(60%);
+    cursor: pointer;
+    //box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .controls { max-width: 800px; }
+  label { display: block; margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .btn {position: absolute; transform: translate(20%, -50%); padding: 4px 4px; border-radius: 12px; border: 0px solid #333; background: #ccc; cursor: pointer; user-select: none; }
+  #freqSlider { width: 100%; }
+  .x-label {
+    position: absolute;
+    top: 86px; /* slightly below the box */
+    font-size: 9px;
+    transform: translateX(-50%);
+    user-select: none; /* prevent label selection */
+    cursor: default; /* keep normal cursor */
+  }
+</style>
+</head>
+<body>
+<h2>String Player</h2>
+<p>Drag the dot to move it. Click on a string to play it; click again to stop the sound.</p>
+<div id="box" aria-label="waveform-box"></div>
+<div class="controls">
+  <label>
+    Base frequency: <input type="text" id="freqValue" value="100" id="freqValue" size="5"></input> Hz<br />
+    <input type="range" id="freqSlider" min="50" max="500" value="80" />
+  </label>
+</div>
+<script>
+let ctx = null;
+let gain = null;
+let osc1 = null;
+let osc2 = null;
+let playing1 = false;
+let playing2 = false;
+let dotPositions = [];
+let dragTarget = null;
+let dragStartTime = 0;
+let dragging = false;
+
+
+const box = document.getElementById('box');
+const slider = document.getElementById('freqSlider');
+const freqValue = document.getElementById('freqValue');
+
+const x = box.clientWidth;
+const y = 25;
+let dotPosition = {x, y};
+
+function buildGrid() {
+
+  const n = 16;
+  for (let i = 1; i < n; i++) {
+    const g = document.createElement('div');
+    g.className = 'gridline';
+    g.style.left = (i / n * 100) + '%';
+    box.appendChild(g);
+  }
+  const special = [1/6, 1/5, 1/3, 2/5, 3/5, 2/3, 4/5, 5/6];
+  special.forEach(r => {
+    const g = document.createElement('div');
+    g.className = 'gridline';
+    g.style.left = (r*100)+'%';
+    g.style.borderLeft = '1px dashed #aaa';
+    g.style.background = '#ffffff';
+    box.appendChild(g);
+  });
+
+
+  const labels = [ [0,'0'], [1/16,'1/16'], [1/8,'1/8'], [1/6,'1/6'], [1/5,'1/5'], [1/4,'1/4'], [1/3,'1/3'], [3/8,'3/8'], [2/5,'2/5'],  [7/16,'7/16'], [1/2,'1/2'],  [9/16,'9/16'], [3/5, '3/5'], [5/8,'5/8'], [3/4,'3/4'], [2/3,'2/3'], [4/5,'4/5'], [5/6,'5/6'], [7/8,'7/8'], [15/16,'15/16'], [1,'1'] ];
+  labels.forEach(([r,text]) => {
+    const label = document.createElement('div');
+    label.className = 'x-label';
+    label.style.left = (r*100)+'%';
+    label.textContent = text;
+    box.appendChild(label);
+  });
+}
+
+const clickarea = document.createElement('div');
+clickarea.className = "clickable";
+box.appendChild(clickarea);
+
+function render() {
+    updatefreq();
+    [...box.querySelectorAll('.dot')].forEach(el => el.remove());
+    [...box.querySelectorAll('.string')].forEach(el => el.remove());
+    [...box.querySelectorAll('.playstring')].forEach(el => el.remove());
+    const string1 = document.createElement('div');
+    if (playing1) string1.className = 'playstring';
+    else string1.className = 'string';
+    string1.style.width = dotPosition.x + 'px';
+    box.appendChild(string1);
+
+    const string1stop = document.createElement('div');
+    string1stop.className = 'string';
+    string1stop.style.left = dotPosition.x + 'px';
+    string1stop.style.width = (box.clientWidth - dotPosition.x) + 'px';
+    box.appendChild(string1stop);
+
+    const string2 = document.createElement('div');
+    if (playing2) string2.className = 'playstring';
+    else string2.className = 'string';
+    string2.style.top = '70%';
+    box.appendChild(string2);
+
+   [...box.querySelectorAll('.dot')].forEach(el => el.remove());
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.style.left = dotPosition.x + 'px';
+    d.style.top = dotPosition.y + 'px';
+    d.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      dragTarget = { index: 1, el: d };
+      dragStartTime = performance.now();
+      dragging = false;
+    });
+    box.appendChild(d);
+    // If this dot is currently being dragged, assign its element immediately
+    if (dragTarget && dragTarget.index === 1 && !dragTarget.el) dragTarget.el = d;
+
+
+    const playbtn1 = document.createElement('button');
+    playbtn1.id = 'playBtn1';
+    playbtn1.className = 'btn';
+    if (playing1) playbtn1.textContent = 'Stop';
+    else playbtn1.textContent = 'Play';
+    playbtn1.style.top = '30%';
+    playbtn1.onclick = toggleSound1;
+    box.appendChild(playbtn1);
+
+    const playbtn2 = document.createElement('button');
+    playbtn2.id = 'playBtn2';
+    playbtn2.className = 'btn';
+    if (playing2) playbtn2.textContent = 'Stop';
+    else playbtn2.textContent = 'Play';
+    playbtn2.style.top = '70%';
+    playbtn2.onclick = toggleSound2;
+    box.appendChild(playbtn2);
+
+}
+
+
+
+box.addEventListener('mousemove', e => {
+  const rect = box.getBoundingClientRect();
+  let width = box.clientWidth;
+  let xt = e.clientX - rect.left;
+  let yt = e.clientY - rect.top;
+ 
+//   if (10 < yt && yt < 30 && xt > box.clientWidth/10) {
+//     box.style.cursor = "pointer";
+//   } else box.style.cursor = "default";
+  if (!dragTarget) return;
+  dragging = true;
+  let x = Math.max(width/10, Math.min(width, xt));
+  dotPosition = {x, y};
+  if(dragTarget.el) { dragTarget.el.style.left = x + 'px'; dragTarget.el.style.top = y + 'px'; }
+  updatefreq();
+  render();
+});
+
+window.addEventListener('mouseup', e => {
+  if (!dragTarget) return;
+  const clickDuration = performance.now() - dragStartTime;
+  const wasClick = clickDuration < 200 && !dragging;
+  if (wasClick) {
+    dotPositions.splice(dragTarget.index, 1);
+    updateWaveform();
+  }
+  dragTarget = null;
+  dragging = false;
+  render();
+});
+
+clickarea.addEventListener('mousedown', e => {
+  const rect = box.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  dotPosition = {x, y};
+  
+  const newEl = box.querySelectorAll('.dot')[0];
+  dragTarget = { index: 1, el: newEl };
+  dragging = true;
+  render();
+});
+
+clickarea.addEventListener('mousemove', e => {
+  const rect = box.getBoundingClientRect();
+  let width = box.clientWidth;
+  let xt = e.clientX - rect.left;
+  let yt = e.clientY - rect.top;
+ 
+  if (!dragTarget) return;
+  dragging = true;
+  let x = Math.max(width/10, Math.min(width, xt));
+  dotPosition = {x, y};
+  if(dragTarget.el) { dragTarget.el.style.left = x + 'px'; dragTarget.el.style.top = y + 'px'; }
+  updatefreq();
+  render();
+});
+
+window.addEventListener("keydown", (event) => {
+    var multf = 1;
+    const width = box.clientWidth;
+    const k = event.key;
+  switch (k) {
+    case 'a': multf = 1; break;
+    case 'w': multf = 2**(-1/12); break;
+    case 's': multf = 2**(-2/12); break;
+    case 'e': multf = 2**(-3/12); break;
+    case 'd': multf = 2**(-4/12); break;
+    case 'f': multf = 2**(-5/12); break;
+    case 't': multf = 2**(-6/12); break;
+    case 'g': multf = 2**(-7/12); break;
+    case 'y': multf = 2**(-8/12); break;
+    case 'h': multf = 2**(-9/12); break;
+    case 'u': multf = 2**(-10/12); break;
+    case 'j': multf = 2**(-11/12); break;
+    case 'k': multf = 2**(-12/12); break;
+    case 'o': multf = 2**(-13/12); break;
+    case 'l': multf = 2**(-14/12); break;
+    default : return;
+  };
+  let x = multf * width;
+  dotPosition = {x, y};
+  updatefreq();
+  render();
+});
+
+slider.addEventListener('input', () => {
+  freqValue.value = slider.value;
+  updatefreq();
+});
+
+
+freqValue.addEventListener('input', () => {
+  if (Number(freqValue.value) > 500) freqValue.value = 500;
+  slider.value = freqValue.value;
+  updatefreq();
+});
+
+
+async function updatefreq() { 
+  const basef = Number(freqValue.value);
+  if (osc1) {
+    const width = box.clientWidth;
+    const freq = basef / (dotPosition.x / width);
+    osc1.frequency.setValueAtTime(freq, ctx.currentTime)
+  }
+  if (osc2) {
+    osc2.frequency.setValueAtTime(basef, ctx.currentTime)
+  }
+}
+
+async function ensureAudioContext() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!gain) gain = new GainNode(ctx, {gain: 0.5});
+  if (ctx.state === 'suspended') await ctx.resume();
+}
+
+
+async function toggleSound1() {
+  if (playing1) {
+    playing1 = false;
+    if (osc1) { try { osc1.stop(); } catch(e){} osc1.disconnect(); osc1 = null; }
+  } else {
+    await ensureAudioContext();
+    playing1 = true;
+    osc1 = ctx.createOscillator();
+    updatefreq();
+    osc1.type = "triangle";
+    osc1.connect(gain).connect(ctx.destination);
+    osc1.start();
+  };
+  render();
+}
+
+async function toggleSound2() {
+  if (playing2) {
+    playing2 = false;
+    if (osc2) { try { osc2.stop(); } catch(e){} osc2.disconnect(); osc2 = null; }
+  } else {
+    await ensureAudioContext();
+    playing2 = true;
+    osc2 = ctx.createOscillator();
+    updatefreq();
+    osc2.type = "triangle";
+    osc2.connect(gain).connect(ctx.destination);
+    osc2.start();
+  };
+  render();
+}
+
+
+buildGrid();
+render();
+</script>
+
+<br><br><br><br>
+
+<center><small>Content last updated April 2026. Modified from <a href="wavegen.html">Rhythm creator</a>. <br><a href="/">Return to homepage</a></small></center>
+</body>
+</html>
