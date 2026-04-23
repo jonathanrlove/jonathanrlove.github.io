@@ -115,15 +115,16 @@ let dotPosition = {x, y};
 
 function buildGrid() {
 
-  const n = 16;
-  for (let i = 1; i < n; i++) {
+  const lines = [1/2, 1/4, 3/4, 1/8, 3/8, 5/8, 7/8];
+  lines.forEach(r => {
     const g = document.createElement('div');
     g.className = 'gridline';
-    g.style.left = (i / n * 100) + '%';
+    g.style.left = (r*100)+'%';
     box.appendChild(g);
-  }
-  const special = [1/6, 1/5, 1/3, 2/5, 3/5, 2/3, 4/5, 5/6];
-  special.forEach(r => {
+  });
+
+  const dash = [1/5,2/5,3/5,4/5,1/6,1/3,2/3,5/6];
+  dash.forEach(r => {
     const g = document.createElement('div');
     g.className = 'gridline';
     g.style.left = (r*100)+'%';
@@ -132,8 +133,18 @@ function buildGrid() {
     box.appendChild(g);
   });
 
+  const dash2 = [1/9,7/9,8/9,5/9,4/9,2/9];
+  dash2.forEach(r => {
+    const g = document.createElement('div');
+    g.className = 'gridline';
+    g.style.left = (r*100)+'%';
+    g.style.borderLeft = '1px dotted #aaa';
+    g.style.background = '#ffffff';
+    box.appendChild(g);
+  });
 
-  const labels = [ [0,'0'], [1/16,'1/16'], [1/8,'1/8'], [1/6,'1/6'], [1/5,'1/5'], [1/4,'1/4'], [1/3,'1/3'], [3/8,'3/8'], [2/5,'2/5'],  [7/16,'7/16'], [1/2,'1/2'],  [9/16,'9/16'], [3/5, '3/5'], [5/8,'5/8'], [3/4,'3/4'], [2/3,'2/3'], [4/5,'4/5'], [5/6,'5/6'], [7/8,'7/8'], [15/16,'15/16'], [1,'1'] ];
+
+  const labels = [ [0,'0'], [1/8,'1/8'], [1/6,'1/6'], [1/5,'1/5'],[4/9,'4/9'], [5/9,'5/9'],[1/4,'1/4'], [1/3,'1/3'], [3/8,'3/8'], [2/5,'2/5'],  [1/2,'1/2'],  [3/5, '3/5'], [5/8,'5/8'], [3/4,'3/4'], [2/3,'2/3'], [4/5,'4/5'], [5/6,'5/6'], [8/9,'8/9'], [1,'1'] ];
   labels.forEach(([r,text]) => {
     const label = document.createElement('div');
     label.className = 'x-label';
@@ -270,21 +281,44 @@ window.addEventListener("keydown", (event) => {
     const width = box.clientWidth;
     const k = event.key;
   switch (k) {
-    case 'a': multf = 1; break;
-    case 'w': multf = 2**(-1/12); break;
-    case 's': multf = 2**(-2/12); break;
-    case 'e': multf = 2**(-3/12); break;
-    case 'd': multf = 2**(-4/12); break;
-    case 'f': multf = 2**(-5/12); break;
-    case 't': multf = 2**(-6/12); break;
-    case 'g': multf = 2**(-7/12); break;
-    case 'y': multf = 2**(-8/12); break;
-    case 'h': multf = 2**(-9/12); break;
-    case 'u': multf = 2**(-10/12); break;
-    case 'j': multf = 2**(-11/12); break;
-    case 'k': multf = 2**(-12/12); break;
-    case 'o': multf = 2**(-13/12); break;
-    case 'l': multf = 2**(-14/12); break;
+    case 'q': multf = 1; break;
+    case '2': multf = 2**(-1/12); break;
+    case 'w': multf = 2**(-2/12); break;
+    case '3': multf = 2**(-3/12); break;
+    case 'e': multf = 2**(-4/12); break;
+    case 'r': multf = 2**(-5/12); break;
+    case '5': multf = 2**(-6/12); break;
+    case 't': multf = 2**(-7/12); break;
+    case '6': multf = 2**(-8/12); break;
+    case 'y': multf = 2**(-9/12); break;
+    case '7': multf = 2**(-10/12); break;
+    case 'u': multf = 2**(-11/12); break;
+    case 'i': multf = 2**(-12/12); break;
+    case '9': multf = 2**(-13/12); break;
+    case 'o': multf = 2**(-14/12); break;
+    case '0': multf = 2**(-15/12); break;
+    case 'p': multf = 2**(-16/12); break;
+    case '[': multf = 2**(-17/12); break;
+    case '=': multf = 2**(-18/12); break;
+    case ']': multf = 2**(-19/12); break;
+
+    case 'z': multf = 2**(-12/12); break;
+    case 's': multf = 2**(-13/12); break;
+    case 'x': multf = 2**(-14/12); break;
+    case 'd': multf = 2**(-15/12); break;
+    case 'c': multf = 2**(-16/12); break;
+    case 'v': multf = 2**(-17/12); break;
+    case 'g': multf = 2**(-18/12); break;
+    case 'b': multf = 2**(-19/12); break;
+    case 'h': multf = 2**(-20/12); break;
+    case 'n': multf = 2**(-21/12); break;
+    case 'j': multf = 2**(-22/12); break;
+    case 'm': multf = 2**(-23/12); break;
+    case ',': multf = 2**(-24/12); break;
+    case 'l': multf = 2**(-25/12); break;
+    case '.': multf = 2**(-26/12); break;
+    case ';': multf = 2**(-27/12); break;
+    case '/': multf = 2**(-28/12); break;
     default : return;
   };
   let x = multf * width;
