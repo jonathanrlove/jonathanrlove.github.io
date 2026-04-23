@@ -11,7 +11,7 @@
     height: 80px;
     border: 1.5px solid #666;
     position: relative;
-    margin-bottom: 45px;
+    margin-bottom: 25px;
     //cursor: crosshair;
     //background: #fafafa;
     box-sizing: border-box;
@@ -87,8 +87,12 @@
 <div id="box" aria-label="waveform-box"></div>
 <div class="controls">
   <label>
-    Base frequency: <input type="text" id="freqValue" value="100" id="freqValue" size="5"></input> Hz<br />
-    <input type="range" id="freqSlider" min="50" max="500" value="80" />
+    Dot position: <input type="text" id="dotPos" value="1" size="6"></input> &nbsp; &nbsp;  Interval: <input type="text" id="interval" value="1" size="6"></input><br />
+  </label>
+  <br>
+  <label>
+    Base frequency: <input type="text" id="freqValue" value="100" size="5"></input> Hz<br />
+    <input type="range" id="freqSlider" min="50" max="500" value="100" />
   </label>
 </div>
 <script>
@@ -99,19 +103,21 @@ let osc1 = null;
 let osc2 = null;
 let playing1 = false;
 let playing2 = false;
-let dotPositions = [];
 let dragTarget = null;
 let dragStartTime = 0;
 let dragging = false;
+let piano = false;
 
 
 const box = document.getElementById('box');
 const slider = document.getElementById('freqSlider');
 const freqValue = document.getElementById('freqValue');
+const dotPos = document.getElementById('dotPos');
+const interval = document.getElementById('interval');
 
-const x = box.clientWidth;
+const x = 1;
 const y = 25;
-let dotPosition = {x, y};
+let dotPosition = x;
 
 function buildGrid() {
 
@@ -160,19 +166,20 @@ box.appendChild(clickarea);
 
 function render() {
     updatefreq();
+    const width = box.clientWidth; 
     [...box.querySelectorAll('.dot')].forEach(el => el.remove());
     [...box.querySelectorAll('.string')].forEach(el => el.remove());
     [...box.querySelectorAll('.playstring')].forEach(el => el.remove());
     const string1 = document.createElement('div');
     if (playing1) string1.className = 'playstring';
     else string1.className = 'string';
-    string1.style.width = dotPosition.x + 'px';
+    string1.style.width = (dotPosition * width) + 'px';
     box.appendChild(string1);
 
     const string1stop = document.createElement('div');
     string1stop.className = 'string';
-    string1stop.style.left = dotPosition.x + 'px';
-    string1stop.style.width = (box.clientWidth - dotPosition.x) + 'px';
+    string1stop.style.left = (dotPosition * width) + 'px';
+    string1stop.style.width =  ((1 - dotPosition) * width) + 'px';
     box.appendChild(string1stop);
 
     const string2 = document.createElement('div');
@@ -184,8 +191,8 @@ function render() {
    [...box.querySelectorAll('.dot')].forEach(el => el.remove());
     const d = document.createElement('div');
     d.className = 'dot';
-    d.style.left = dotPosition.x + 'px';
-    d.style.top = dotPosition.y + 'px';
+    d.style.left = (dotPosition * width) + 'px';
+    d.style.top = y + 'px';
     d.addEventListener('mousedown', e => {
       e.stopPropagation();
       dragTarget = { index: 1, el: d };
@@ -230,10 +237,11 @@ box.addEventListener('mousemove', e => {
 //   } else box.style.cursor = "default";
   if (!dragTarget) return;
   dragging = true;
-  let x = Math.max(width/10, Math.min(width, xt));
-  dotPosition = {x, y};
-  if(dragTarget.el) { dragTarget.el.style.left = x + 'px'; dragTarget.el.style.top = y + 'px'; }
-  updatefreq();
+  let x = Math.max(width/10, Math.min(width, xt)) / width;
+  dotPosition = x;
+  dotPos.value = x;
+  interval.value = 1/x;
+  if(dragTarget.el) { dragTarget.el.style.left = (width * x) + 'px'; dragTarget.el.style.top = y + 'px'; }
   render();
 });
 
@@ -241,10 +249,6 @@ window.addEventListener('mouseup', e => {
   if (!dragTarget) return;
   const clickDuration = performance.now() - dragStartTime;
   const wasClick = clickDuration < 200 && !dragging;
-  if (wasClick) {
-    dotPositions.splice(dragTarget.index, 1);
-    updateWaveform();
-  }
   dragTarget = null;
   dragging = false;
   render();
@@ -252,8 +256,11 @@ window.addEventListener('mouseup', e => {
 
 clickarea.addEventListener('mousedown', e => {
   const rect = box.getBoundingClientRect();
+  const width = box.clientWidth;
   let x = e.clientX - rect.left;
-  dotPosition = {x, y};
+  dotPosition = x / width;
+  dotPos.value = x / width;
+  interval.value = width / x;
   
   const newEl = box.querySelectorAll('.dot')[0];
   dragTarget = { index: 1, el: newEl };
@@ -269,15 +276,23 @@ clickarea.addEventListener('mousemove', e => {
  
   if (!dragTarget) return;
   dragging = true;
-  let x = Math.max(width/10, Math.min(width, xt));
-  dotPosition = {x, y};
-  if(dragTarget.el) { dragTarget.el.style.left = x + 'px'; dragTarget.el.style.top = y + 'px'; }
-  updatefreq();
+  let x = Math.max(width/10, Math.min(width, xt)) / width;
+  dotPosition = x;
+  dotPos.value = x;
+  interval.value = 1/x;
+  if(dragTarget.el) { dragTarget.el.style.left = (width * x) + 'px'; dragTarget.el.style.top = y + 'px'; }
   render();
 });
 
+window.addEventListener("resize", (event) => {
+    render();
+});
+
 window.addEventListener("keydown", (event) => {
+  if (piano) {
     var multf = 1;
+    let active = document.activeElement;
+    if (active != interval && active != dotPos && active != freqValue) {
     const width = box.clientWidth;
     const k = event.key;
   switch (k) {
@@ -321,10 +336,13 @@ window.addEventListener("keydown", (event) => {
     case '/': multf = 2**(-28/12); break;
     default : return;
   };
-  let x = multf * width;
-  dotPosition = {x, y};
-  updatefreq();
+  let x = multf;
+  dotPosition = x;
+  dotPos.value = x;
+  interval.value = 1/x;
   render();
+  }
+}
 });
 
 slider.addEventListener('input', () => {
@@ -333,10 +351,51 @@ slider.addEventListener('input', () => {
 });
 
 
-freqValue.addEventListener('input', () => {
-  if (Number(freqValue.value) > 500) freqValue.value = 500;
-  slider.value = freqValue.value;
-  updatefreq();
+freqValue.addEventListener('keydown', (event) => {
+  if(event.key === 'Enter') {
+    if (/^[0-9]+$/.test(dotPos.value)) {
+      if (Number(freqValue.value) > 1000) freqValue.value = 1000;
+      if (Number(freqValue.value) < 1) freqValue.value = 1;
+      slider.value = freqValue.value;
+      updatefreq();
+    }
+  }
+});
+
+dotPos.addEventListener('keydown', (event) => {
+  if(event.key === 'Enter') {
+    if (/^[0-9.+\-*/]+$/.test(dotPos.value)) {
+      let x = eval(dotPos.value);
+      //let x = Number(dotPos.value)
+      if (x > 1) {x = 1; dotPos.value = 1};
+      if (x < 0.1) {x = 0.1; dotPos.value = 0.1};
+      dotPosition = x;
+      dotPos.value = x;
+      interval.value = 1/x;
+      render();
+    }
+  }
+});
+
+interval.addEventListener('keydown', (event) => {
+  if(event.key === 'Enter') {
+    if (interval.value == 'piano') {
+      piano = !piano;
+      dotPosition = 1;
+      dotPos.value = 1;
+      interval.value = 1;
+      return;
+    }
+    if (/^[0-9.+\-*/]+$/.test(interval.value)) {
+      let x = eval(interval.value);
+      if (x < 1) {x = 1; interval.value = 1};
+      if (x > 10) {x = 10; interval.value = 10};
+      dotPosition = 1 / x;
+      dotPos.value = 1 / x;
+      interval.value = x;
+      render();
+    }
+  }
 });
 
 
@@ -344,7 +403,7 @@ async function updatefreq() {
   const basef = Number(freqValue.value);
   if (osc1) {
     const width = box.clientWidth;
-    const freq = basef / (dotPosition.x / width);
+    const freq = basef / dotPosition;
     gain1.gain.value = Math.min(0.5,100/freq);
     osc1.frequency.setValueAtTime(freq, ctx.currentTime)
   }
