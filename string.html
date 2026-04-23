@@ -93,7 +93,8 @@
 </div>
 <script>
 let ctx = null;
-let gain = null;
+let gain1 = null;
+let gain2 = null;
 let osc1 = null;
 let osc2 = null;
 let playing1 = false;
@@ -310,16 +311,19 @@ async function updatefreq() {
   if (osc1) {
     const width = box.clientWidth;
     const freq = basef / (dotPosition.x / width);
+    gain1.gain.value = Math.min(0.5,100/freq);
     osc1.frequency.setValueAtTime(freq, ctx.currentTime)
   }
   if (osc2) {
+    gain2.gain.value = Math.min(0.5,100/basef);
     osc2.frequency.setValueAtTime(basef, ctx.currentTime)
   }
 }
 
 async function ensureAudioContext() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (!gain) gain = new GainNode(ctx, {gain: 0.5});
+  if (!gain1) gain1 = new GainNode(ctx, {gain: 0.5});
+  if (!gain2) gain2 = new GainNode(ctx, {gain: 0.5});
   if (ctx.state === 'suspended') await ctx.resume();
 }
 
@@ -334,7 +338,7 @@ async function toggleSound1() {
     osc1 = ctx.createOscillator();
     updatefreq();
     osc1.type = "triangle";
-    osc1.connect(gain).connect(ctx.destination);
+    osc1.connect(gain1).connect(ctx.destination);
     osc1.start();
   };
   render();
@@ -350,7 +354,7 @@ async function toggleSound2() {
     osc2 = ctx.createOscillator();
     updatefreq();
     osc2.type = "triangle";
-    osc2.connect(gain).connect(ctx.destination);
+    osc2.connect(gain2).connect(ctx.destination);
     osc2.start();
   };
   render();
