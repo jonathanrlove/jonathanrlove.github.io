@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       154,          7]
-NotebookDataLength[     11613,        326]
-NotebookOptionsPosition[     11043,        308]
-NotebookOutlinePosition[     11436,        324]
-CellTagsIndexPosition[     11393,        321]
+NotebookDataLength[     12571,        342]
+NotebookOptionsPosition[     12001,        324]
+NotebookOutlinePosition[     12394,        340]
+CellTagsIndexPosition[     12351,        337]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -21,15 +21,13 @@ Notebook[{
 Cell[TextData[{
  "Cut a pizza of radius 1 into ",
  Cell[BoxData[
-  FormBox["n", TraditionalForm]],
-  FormatType->TraditionalForm,ExpressionUUID->
+  FormBox["n", TraditionalForm]],ExpressionUUID->
   "1939de0f-793a-4bf4-8df9-d5e193ea1ae4"],
  " equal slices, and fit them in a circle of radius ",
  Cell[BoxData[
   FormBox[
    RowBox[{"1", "-", 
-    SuperscriptBox["10", "e"]}], TraditionalForm]],
-  FormatType->TraditionalForm,ExpressionUUID->
+    SuperscriptBox["10", "e"]}], TraditionalForm]],ExpressionUUID->
   "e50d97f5-3f27-471a-b3d1-ba617c542d0b"],
  "."
 }], "Text",
@@ -100,47 +98,43 @@ Cell[BoxData[{
    RowBox[{"Module", "[", 
     RowBox[{
      RowBox[{"{", 
-      RowBox[{"t", ",", "v", ",", "z1"}], "}"}], ",", "\[IndentingNewLine]", 
+      RowBox[{"t", ",", "v"}], "}"}], ",", "\[IndentingNewLine]", 
      RowBox[{
       RowBox[{"v", "=", 
-       RowBox[{
-        RowBox[{"(", 
-         RowBox[{"u", "-", "z"}], ")"}], 
-        RowBox[{"Conjugate", "[", "z", "]"}]}]}], ";", "\[IndentingNewLine]", 
-      
+       RowBox[{"(", 
+        RowBox[{"u", "-", "z"}], ")"}]}], ";", "\[IndentingNewLine]", 
       RowBox[{"t", "=", 
-       RowBox[{
-        RowBox[{"-", 
-         RowBox[{"Re", "[", 
-          RowBox[{"\[Zeta]", "+", "v"}], "]"}]}], "+", 
-        SqrtBox[
-         RowBox[{
-          SuperscriptBox[
-           RowBox[{"Re", "[", 
-            RowBox[{"\[Zeta]", "+", "v"}], "]"}], "2"], "-", 
-          RowBox[{"(", 
-           RowBox[{"1", "+", 
-            RowBox[{"2", 
-             RowBox[{"Re", "[", 
-              RowBox[{"\[Zeta]", " ", "v"}], "]"}]}], "+", 
-            SuperscriptBox[
-             RowBox[{"Abs", "[", "z", "]"}], "2"], "-", 
-            SuperscriptBox[
-             RowBox[{"(", 
-              RowBox[{"1", "-", "\[Epsilon]"}], ")"}], "2"]}], ")"}]}]]}]}], ";",
-       "\[IndentingNewLine]", 
-      RowBox[{"z1", "=", 
-       RowBox[{
-        RowBox[{"t", 
-         RowBox[{"(", 
-          RowBox[{"u", "-", "z"}], ")"}]}], "+", "z"}]}], ";", 
-      "\[IndentingNewLine]", 
-      RowBox[{"{", 
-       RowBox[{"z1", ",", 
+       RowBox[{"(", 
         RowBox[{
-         RowBox[{"\[Zeta]", 
+         RowBox[{"-", 
+          RowBox[{"Re", "[", 
+           RowBox[{"\[Zeta]", " ", "v", " ", 
+            RowBox[{"Conjugate", "[", "z", "]"}]}], "]"}]}], "+", 
+         SqrtBox[
+          RowBox[{
+           SuperscriptBox[
+            RowBox[{"Re", "[", 
+             RowBox[{"\[Zeta]", " ", "v", " ", 
+              RowBox[{"Conjugate", "[", "z", "]"}]}], "]"}], "2"], "-", 
+           RowBox[{"(", 
+            RowBox[{
+             SuperscriptBox[
+              RowBox[{"Abs", "[", "z", "]"}], "2"], "-", 
+             SuperscriptBox[
+              RowBox[{"(", 
+               RowBox[{"1", "-", "\[Epsilon]"}], ")"}], "2"]}], ")"}]}]]}], 
+        ")"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
           RowBox[{"(", 
-           RowBox[{"u", "-", "z"}], ")"}]}], "+", "z1"}]}], "}"}]}]}], 
+           RowBox[{"t", "-", "1"}], ")"}], "\[Zeta]", " ", "v"}], "+", "z"}], 
+        ",", 
+        RowBox[{
+         RowBox[{"t", " ", "\[Zeta]", " ", "v"}], "+", "z"}], ",", 
+        RowBox[{
+         RowBox[{"\[Zeta]", " ", "v"}], "+", "z"}], ",", "t"}], "}"}]}]}], 
     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
@@ -193,14 +187,18 @@ Cell[BoxData[{
         RowBox[{
          RowBox[{
           RowBox[{"{", 
-           RowBox[{"z", ",", "u"}], "}"}], "=", 
+           RowBox[{"zp", ",", "up", ",", "rp", ",", "t"}], "}"}], "=", 
           RowBox[{"update", "[", 
            RowBox[{"z", ",", "u", ",", "\[Zeta]", ",", "\[Epsilon]"}], 
            "]"}]}], ";", "\[IndentingNewLine]", 
          RowBox[{"If", "[", 
           RowBox[{
-           RowBox[{"cross", "[", 
-            RowBox[{"u0", ",", "z0", ",", "u", ",", "z"}], "]"}], ",", 
+           RowBox[{
+            RowBox[{"cross", "[", 
+             RowBox[{"u0", ",", "z0", ",", "up", ",", "zp"}], "]"}], "||", 
+            RowBox[{"cross", "[", 
+             RowBox[{"up", ",", "zp", ",", "u", ",", "z"}], "]"}], "||", 
+            RowBox[{"t", "<", "1"}]}], ",", 
            RowBox[{"crossed", "=", "True"}], ",", "\[IndentingNewLine]", 
            RowBox[{
             RowBox[{"pts", "=", 
@@ -212,7 +210,18 @@ Cell[BoxData[{
             RowBox[{"AppendTo", "[", 
              RowBox[{"lines", ",", " ", 
               RowBox[{"line", "[", 
-               RowBox[{"u", ",", "z"}], "]"}]}], "]"}], ";"}]}], 
+               RowBox[{"up", ",", "z"}], "]"}]}], "]"}], ";", 
+            "\[IndentingNewLine]", 
+            RowBox[{"AppendTo", "[", 
+             RowBox[{"lines", ",", " ", 
+              RowBox[{"line", "[", 
+               RowBox[{"rp", ",", "u"}], "]"}]}], "]"}], ";", 
+            "\[IndentingNewLine]", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"z", ",", "u"}], "}"}], "=", 
+             RowBox[{"{", 
+              RowBox[{"zp", ",", "up"}], "}"}]}], ";"}]}], 
           "\[IndentingNewLine]", "]"}]}]}], "\[IndentingNewLine]", "]"}], ";",
        "\[IndentingNewLine]", 
       RowBox[{"Show", "[", 
@@ -260,9 +269,12 @@ Cell[BoxData[{
    4.000824465873323*^9, {4.0008271395096273`*^9, 4.0008272578583593`*^9}, {
    4.00082729525429*^9, 4.000827319890913*^9}, {4.00082735178997*^9, 
    4.0008273763585653`*^9}, 4.000827409043754*^9, {4.000827457541501*^9, 
-   4.000827457776959*^9}, {4.00082771327486*^9, 4.000827734684552*^9}},
+   4.000827457776959*^9}, {4.00082771327486*^9, 4.000827734684552*^9}, {
+   4.000828979795723*^9, 4.000829114850909*^9}, 4.000829455386366*^9, {
+   4.000829521139024*^9, 4.000829650573436*^9}, {4.0008297114745207`*^9, 
+   4.000829712649486*^9}, {4.000829771554955*^9, 4.000829782781249*^9}},
  CellLabel->
-  "In[2233]:=",ExpressionUUID->"1e9c4d8a-4d8d-48b9-8ad7-3c033f092a7c"],
+  "In[2551]:=",ExpressionUUID->"1e9c4d8a-4d8d-48b9-8ad7-3c033f092a7c"],
 
 Cell[BoxData[
  TagBox[
@@ -290,7 +302,7 @@ Cell[BoxData[
       "Specifications" :> {{{$CellContext`n$$, 40}, 10, 
          1000}, {{$CellContext`e$$, -2}, -5, -1}}, "Options" :> {}, 
       "DefaultOptions" :> {}],
-     ImageSizeCache->{409.1, {262.5284907333388, 268.2604243270888}},
+     ImageSizeCache->{409.1, {235.08849073333874`, 240.82042432708874`}},
      SingleEvaluation->True],
     Deinitialization:>None,
     DynamicModuleValues:>{},
@@ -301,9 +313,13 @@ Cell[BoxData[
    Deployed->True,
    StripOnInput->False],
   Manipulate`InterpretManipulate[1]]], "Output",
- CellChangeTimes->{4.000827735598174*^9},
+ CellChangeTimes->{
+  4.000827735598174*^9, 4.000829094952292*^9, 4.000829457395783*^9, 
+   4.000829653560409*^9, {4.000829715538952*^9, 4.000829743964126*^9}, 
+   4.000829784304763*^9, {4.0008298488839207`*^9, 4.000829863969969*^9}, 
+   4.00082992706238*^9},
  CellLabel->
-  "Out[2238]=",ExpressionUUID->"3323677d-38d2-4aad-869d-6da9af4332f0"]
+  "Out[2556]=",ExpressionUUID->"419061d3-ec7d-4c76-bb6e-05eeef74f3ff"]
 }, {2}]]
 },
 WindowSize->{808, 715},
@@ -323,14 +339,12 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[554, 20, 580, 17, 33, "Text",ExpressionUUID->"88400c1a-5b50-4837-b3f1-a88d59146de2"],
+Cell[554, 20, 518, 15, 33, "Text",ExpressionUUID->"88400c1a-5b50-4837-b3f1-a88d59146de2"],
 Cell[CellGroupData[{
-Cell[1159, 41, 7874, 223, 706, "Input",ExpressionUUID->"1e9c4d8a-4d8d-48b9-8ad7-3c033f092a7c"],
-Cell[9036, 266, 1994, 39, 561, "Output",ExpressionUUID->"3323677d-38d2-4aad-869d-6da9af4332f0"]
+Cell[1097, 39, 8672, 237, 728, "Input",ExpressionUUID->"1e9c4d8a-4d8d-48b9-8ad7-3c033f092a7c"],
+Cell[9772, 278, 2216, 43, 506, "Output",ExpressionUUID->"419061d3-ec7d-4c76-bb6e-05eeef74f3ff"]
 }, {2}]]
 }
 ]
 *)
-
-(* End of internal cache information *)
 
